@@ -1,0 +1,11 @@
+# Ignore all JSON files in the root directory
+*.json
+
+# Ignore specific files
+file.json
+history-log.json
+history.json
+qa-base.json
+
+# Ignore the reference folder and all its contents
+reference/
