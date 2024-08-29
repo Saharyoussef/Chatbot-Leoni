@@ -9,30 +9,40 @@ def load_model(model_name='mrm8488/bert-multi-cased-finetuned-xquadv1'):
     model = AutoModel.from_pretrained(model_name)
     return model
 
-def find_most_similar_document(documents, question, threshold=0.001):
-    #documents: List of document dictionaries, where each dictionary has a 'section_text' key.
-    #question: The question to compare with the documents.
-    #threshold: Similarity threshold for considering a document as relevant.
-    
+#Change: Enhance doc search by changing Threshold flexibility
+def find_most_similar_document(documents, question):
     if not documents:
         return None
+
     vectorizer = TfidfVectorizer()
-    #Creates an instance of TfidfVectorizer, which converts text data into numerical features based on TF-IDF (Term Frequency-Inverse Document Frequency).
     document_texts = [document['section_text'] for document in documents]
     document_texts.append(question)
     document_vectors = vectorizer.fit_transform(document_texts)
-    #Converts the list of document texts (including the question) into numerical vectors using TF-IDF.
+
     similarities = cosine_similarity(document_vectors[-1], document_vectors[:-1])[0]
-    #The cosine_similarity function returns a similarity score for each document compared to the question.
     max_similarity = similarities.max()
-    if max_similarity >= threshold:
+
+    # Allow dynamic adjustment of the threshold
+    current_threshold = adjust_threshold(max_similarity, question)
+
+    if max_similarity >= current_threshold:
         max_similarity_index = similarities.argmax()
         return documents[max_similarity_index]
     else:
         return None
-    
+   
     # Returns the most similar document to the given question based on TF-IDF similarity.
     # If no documents are provided or if the highest similarity is below the threshold, returns None.
+
+def adjust_threshold(similarity, question):
+    # Example logic: Increase threshold if similarity is low, or based on question length
+    if similarity < 0.5:
+        return 0.003  # Lower the threshold for more lenient matching
+    elif len(question.split()) > 10:
+        return 0.004  # Higher threshold for more precise matching in longer queries
+    else:
+        return 0.004  # Default threshold
+
 
 def find_most_similar_question(qa_base, question, model_name='mrm8488/bert-multi-cased-finetuned-xquadv1', threshold_bert=0.9, threshold_levenshtein=3):
     #threshold_bert: Cosine similarity threshold for considering a question as similar based on BERT embeddings.
@@ -80,4 +90,3 @@ def find_most_similar_question(qa_base, question, model_name='mrm8488/bert-multi
 
 def answer_question(context, question):
     return context
-
