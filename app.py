@@ -3,8 +3,8 @@ import os
 import json
 import pandas as pd
 from datetime import datetime
-from qa_model import load_model, find_most_similar_document, find_most_similar_question, answer_question
-from data_management import load_qa_base, load_file_data, save_qa_base, log_change, update_history, load_history, load_password
+from qa_model import load_model
+from data_management import load_qa_base, load_file_data, save_qa_base, log_change, update_history, load_password
 from utils import get_answer_for_question, refresh_suggestions
 from transformers import AutoTokenizer
 

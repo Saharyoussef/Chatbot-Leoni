@@ -14,7 +14,7 @@ def get_answer_for_question(question, model_name, history_path):
     source = None
     if question:
         most_similar_question, similarity_score = find_most_similar_question(st.session_state.qa_base, question, model_name=model_name)
-        if similarity_score > 0.9:
+        if similarity_score > 0.8:
             answer = st.session_state.qa_base[most_similar_question]
             source = 'QA Base'
             #st.session_state: This is a Streamlit feature that provides a way to store and manage state across multiple runs of a Streamlit app. 

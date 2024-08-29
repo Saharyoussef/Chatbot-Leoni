@@ -3,6 +3,7 @@ import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from Levenshtein import distance as levenshtein_distance
+from fuzzywuzzy import fuzz
 
 def load_model(model_name='mrm8488/bert-multi-cased-finetuned-xquadv1'):
     # Load and return a pre-trained model specified by the model_name.
@@ -44,49 +45,49 @@ def adjust_threshold(similarity, question):
         return 0.004  # Default threshold
 
 
-def find_most_similar_question(qa_base, question, model_name='mrm8488/bert-multi-cased-finetuned-xquadv1', threshold_bert=0.9, threshold_levenshtein=3):
-    #threshold_bert: Cosine similarity threshold for considering a question as similar based on BERT embeddings.
-    #threshold_levenshtein: Levenshtein distance threshold for considering a question as similar based on textual similarity.
-    
+#Change 2: Add fuzzy matching for enhancing handling of Typos and Misspellings
+def find_most_similar_question(qa_base, question, model_name='mrm8488/bert-multi-cased-finetuned-xquadv1', threshold_bert=0.85, threshold_levenshtein=4):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
     questions = list(qa_base.keys())
-    question_texts = [question] + questions
 
+    # Use fuzzy matching to find the most similar question
+    best_fuzz_match = None
+    highest_fuzz_score = 0
+    for q in questions:
+        fuzz_score = fuzz.ratio(question, q)
+        #compares two strings and returns a similarity score between 0 and 100, where 100 means the strings are identical.
+        if fuzz_score > highest_fuzz_score:
+            highest_fuzz_score = fuzz_score
+            best_fuzz_match = q
+
+    if highest_fuzz_score > 80:  # Adjust based on your preference
+        return best_fuzz_match, 1.0
+
+    # Fallback to BERT-based similarity if fuzzy matching doesn't suffice
+    question_texts = [question] + questions
     encoded_inputs = tokenizer(question_texts, padding=True, truncation=True, return_tensors="pt")
-    #Tokenizes the question_texts using the tokenizer. The padding and truncation ensure that all sequences are of the same length.
-    #Converts the tokenized texts into PyTorch tensors.
-    
     with torch.no_grad():
         outputs = model(**encoded_inputs)
         question_embeddings = outputs.last_hidden_state[:, 0, :]
+        #The input question and all questions from the qa_base are tokenized and passed through the BERT model to obtain embeddings.
+        #The embeddings represent the semantic meaning of the text.
         
-        #Passes the tokenized inputs through the model to get the embeddings.
-        #outputs.last_hidden_state[:, 0, :] extracts the embeddings for the [CLS] token, which is often used to represent the entire sequence.
-
     question_embedding = question_embeddings[0]
+    #question_embeddings[0] refers to the first element in the tensor, which is the embedding for the input question (the one you want to find a match for).
     questions_embeddings = question_embeddings[1:]
+    #extracts the embeddings of all the other questions from the qa_base, excluding the input question.
     similarities = torch.cosine_similarity(question_embedding.unsqueeze(0), questions_embeddings)
     max_similarity_index = similarities.argmax()
     max_similarity = similarities[max_similarity_index]
 
-    best_question = None
-    min_distance = float('inf')
-
-    for base_question in qa_base:
-        current_distance = levenshtein_distance(question, base_question)
-        if current_distance < min_distance:
-            min_distance = current_distance
-            best_question = base_question
-
-    if min_distance <= threshold_levenshtein or max_similarity > threshold_bert:
-        return best_question, max_similarity.item()
+    if max_similarity > threshold_bert:
+        return questions[max_similarity_index], max_similarity.item()
     else:
-        return None, 0.0
-    
-# Finds the most similar question in the QA base to the given question using both BERT embeddings and Levenshtein distance.
-# Uses BERT embeddings to compute cosine similarity and Levenshtein distance for textual similarity.
-# Returns the most similar question and its similarity score if either measure exceeds the specified thresholds, otherwise returns None and 0.0.
+        return best_fuzz_match, highest_fuzz_score / 100
 
 def answer_question(context, question):
     return context
+
+#Fuzzy Matching: This method is fast and works well for small typos or minor variations in the input text, where the actual characters are mostly the same but arranged differently.
+#BERT-based Similarity: This method is more powerful and captures the semantic meaning of the text, which allows it to recognize that different words or phrases might mean the same thing.
