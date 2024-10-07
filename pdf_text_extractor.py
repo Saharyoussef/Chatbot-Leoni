@@ -11,7 +11,7 @@ def extract_text_from_pdf(pdf_path):
             text += page.extract_text()
     return text
 
-def divide_text_into_sections(text, section_size=500):
+def divide_text_into_sections(text, section_size=600):
     # Divides the extracted text into smaller sections of a specified size.
     sections = [text[i:i + section_size] for i in range(0, len(text), section_size)]
     return sections

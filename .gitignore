@@ -6,6 +6,7 @@ file.json
 history-log.json
 history.json
 qa-base.json
+base.xlsx
 
 # Ignore the reference folder and all its contents
 reference/
