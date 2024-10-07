@@ -42,6 +42,6 @@ def extract_and_divide_pdfs(directory_path, json_output_path, section_size=500):
 
 if __name__ == "__main__":
     # Main function to set paths and call the processing function.
-    directory_path = r"CC:\Users\Sahar Y\OneDrive\Bureau\stage leoni\ChatLeoni\Reference"
+    directory_path = r"C:\Users\Sahar Y\OneDrive\Bureau\stage leoni\ChatLeoni\Reference"
     json_output_path = r"C:\Users\Sahar Y\OneDrive\Bureau\stage leoni\ChatLeoni\file.json"
     extract_and_divide_pdfs(directory_path, json_output_path, section_size=500)
